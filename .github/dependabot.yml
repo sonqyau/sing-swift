@@ -1,0 +1,31 @@
+version: 2
+updates:
+  - package-ecosystem: "swift"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    labels:
+      - "dependencies"
+    assignees:
+      - "sonqyau"
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "deps(sing-swift)"
+    groups:
+      prod-deps:
+        applies-to: version-updates
+        dependency-type: "production"
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+      dev-deps:
+        applies-to: version-updates
+        dependency-type: "development"
+        patterns:
+          - "*"
+      security-deps:
+        applies-to: security-updates
+        patterns:
+          - "*"
