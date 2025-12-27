@@ -1,16 +1,22 @@
 import Foundation
+import Logging
 import NIO
 import NIOTransportServices
 
 public actor Kernel {
     private let eventLoopGroup: any EventLoopGroup
+    private let adapterManager: AdapterManager
+    private let router: DefaultRouter
+    private let logger: Logger
     private var isRunning = false
     private var startTime: Date?
     private var configuration: Configuration?
-    private var channels: [any Channel] = []
 
-    public init() {
+    public init(logger: Logger = Logger(label: "kernel")) {
         self.eventLoopGroup = NIOTSEventLoopGroup()
+        self.logger = logger
+        self.adapterManager = AdapterManager(eventLoopGroup: eventLoopGroup, logger: logger)
+        self.router = DefaultRouter(rules: [], defaultOutbound: "direct")
     }
 
     deinit {
@@ -24,12 +30,18 @@ public actor Kernel {
             throw KernelError.alreadyRunning
         }
 
+        logger.info("Starting kernel")
         self.configuration = configuration
 
-        try await startInbounds(configuration.inbounds)
+        try await createOutboundAdapters(configuration.outbounds)
+
+        try await createInboundAdapters(configuration.inbounds)
+
+        try await adapterManager.startAll()
 
         isRunning = true
         startTime = Date()
+        logger.info("Kernel started")
     }
 
     public func stop() async throws {
@@ -37,40 +49,85 @@ public actor Kernel {
             throw KernelError.notRunning
         }
 
-        for channel in channels {
-            try? await channel.close()
-        }
+        logger.info("Stopping kernel")
 
-        channels.removeAll()
+        try await adapterManager.stopAll()
+
         isRunning = false
         startTime = nil
         configuration = nil
+
+        logger.info("Kernel stopped")
     }
 
     public func status() -> KernelStatus {
-        return KernelStatus(
+        KernelStatus(
             isRunning: isRunning,
             startTime: startTime,
-            version: ApplicationVersion.current
+            version: Version.current,
         )
     }
 
-    private func startInbounds(_ inbounds: [InboundConfiguration]) async throws {
+    public func route(destination: String, port: Int) async -> String {
+        await router.route(destination: destination, port: port)
+    }
+
+    private func createInboundAdapters(_ inbounds: [InboundConfiguration]) async throws {
+        logger.info("Creating \(inbounds.count) inbound adapters")
+
         for inbound in inbounds {
-            try await startInbound(inbound)
+            do {
+                _ = try await adapterManager.createInboundAdapter(configuration: inbound)
+                logger.info("Created inbound adapter: \(inbound.tag)")
+            } catch {
+                logger.error("Failed to create inbound adapter \(inbound.tag): \(error)")
+                throw error
+            }
         }
     }
 
-    private func startInbound(_ inbound: InboundConfiguration) async throws {
-        let bootstrap = ServerBootstrap(group: eventLoopGroup)
-            .serverChannelOption(ChannelOptions.backlog, value: 256)
-            .serverChannelOption(ChannelOptions.socketOption(.so_reuseaddr), value: 1)
-            .childChannelInitializer { channel in
-                return channel.eventLoop.makeSucceededVoidFuture()
-            }
+    private func createOutboundAdapters(_ outbounds: [OutboundConfiguration]) async throws {
+        logger.info("Creating \(outbounds.count) outbound adapters")
 
-        let channel = try await bootstrap.bind(host: inbound.listenAddress, port: inbound.port).get()
-        channels.append(channel)
+        for outbound in outbounds {
+            do {
+                _ = try await adapterManager.createOutboundAdapter(configuration: outbound)
+                logger.info("Created outbound adapter: \(outbound.tag)")
+            } catch {
+                logger.error("Failed to create outbound adapter \(outbound.tag): \(error)")
+                throw error
+            }
+        }
+    }
+
+    public func connect(to destination: String, port: Int) async throws -> any Channel {
+        guard isRunning else {
+            throw KernelError.notRunning
+        }
+
+        let outboundTag = await route(destination: destination, port: port)
+        logger.info("Routing connection to \(destination):\(port) via \(outboundTag)")
+
+        guard let outboundAdapter = await adapterManager.getOutboundAdapter(tag: outboundTag) as? DirectOutboundAdapter else {
+            throw KernelError.configurationError("Outbound adapter not found: \(outboundTag)")
+        }
+
+        return try await outboundAdapter.connect(to: destination, port: port)
+    }
+
+    public func connectUDP(to destination: String, port: Int) async throws -> any Channel {
+        guard isRunning else {
+            throw KernelError.notRunning
+        }
+
+        let outboundTag = await route(destination: destination, port: port)
+        logger.info("Routing UDP connection to \(destination):\(port) via \(outboundTag)")
+
+        guard let outboundAdapter = await adapterManager.getOutboundAdapter(tag: outboundTag) as? DirectOutboundAdapter else {
+            throw KernelError.configurationError("Outbound adapter not found: \(outboundTag)")
+        }
+
+        return try await outboundAdapter.connectUDP(to: destination, port: port)
     }
 }
 
@@ -95,13 +152,13 @@ public enum KernelError: Error, LocalizedError {
     public var errorDescription: String? {
         switch self {
         case .alreadyRunning:
-            return "Kernel is already running"
+            "Kernel is already running"
         case .notRunning:
-            return "Kernel is not running"
-        case .unsupportedProtocol(let type):
-            return "Unsupported protocol: \(type)"
-        case .configurationError(let message):
-            return "Configuration error: \(message)"
+            "Kernel is not running"
+        case let .unsupportedProtocol(type):
+            "Unsupported protocol: \(type)"
+        case let .configurationError(message):
+            "Configuration error: \(message)"
         }
     }
 }

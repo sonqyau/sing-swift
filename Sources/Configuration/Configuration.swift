@@ -1,5 +1,5 @@
-import Foundation
 import Configuration
+import Foundation
 
 public struct Configuration: Codable, Sendable {
     public let logging: LoggingConfiguration?
@@ -13,7 +13,7 @@ public struct Configuration: Codable, Sendable {
         dns: DNSConfiguration? = nil,
         inbounds: [InboundConfiguration] = [],
         outbounds: [OutboundConfiguration] = [],
-        routing: RoutingConfiguration? = nil
+        routing: RoutingConfiguration? = nil,
     ) {
         self.logging = logging
         self.dns = dns
@@ -43,7 +43,7 @@ public struct DNSConfiguration: Codable, Sendable {
         servers: [DNSServerConfiguration],
         rules: [DNSRuleConfiguration]? = nil,
         resolutionStrategy: String = "preferIPv4",
-        isCacheDisabled: Bool = false
+        isCacheDisabled: Bool = false,
     ) {
         self.servers = servers
         self.rules = rules
@@ -126,7 +126,7 @@ public struct RoutingRuleConfiguration: Codable, Sendable {
         domainSuffixes: [String]? = nil,
         ipCIDRBlocks: [String]? = nil,
         ports: [Int]? = nil,
-        outboundTag: String
+        outboundTag: String,
     ) {
         self.domains = domains
         self.domainSuffixes = domainSuffixes
@@ -136,15 +136,15 @@ public struct RoutingRuleConfiguration: Codable, Sendable {
     }
 }
 
-extension Configuration {
-    public static func loadFromJSON(at url: URL) throws -> Configuration {
+public extension Configuration {
+    static func loadFromJSON(at url: URL) throws -> Configuration {
         let data = try Data(contentsOf: url)
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         return try decoder.decode(Configuration.self, from: data)
     }
 
-    public func saveToJSON(at url: URL) throws {
+    func saveToJSON(at url: URL) throws {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         encoder.keyEncodingStrategy = .convertToSnakeCase
@@ -152,22 +152,22 @@ extension Configuration {
         try data.write(to: url)
     }
 
-    public static func `default`() -> Configuration {
-        return Configuration(
+    static func `default`() -> Configuration {
+        Configuration(
             logging: LoggingConfiguration(level: "info"),
             dns: DNSConfiguration(
                 servers: [
                     DNSServerConfiguration(address: "8.8.8.8"),
                     DNSServerConfiguration(address: "1.1.1.1"),
-                ]
+                ],
             ),
             inbounds: [
-                InboundConfiguration(protocolType: "mixed", tag: "mixed-in", port: 7890)
+                InboundConfiguration(protocolType: "mixed", tag: "mixed-in", port: 7890),
             ],
             outbounds: [
-                OutboundConfiguration(protocolType: "direct", tag: "direct")
+                OutboundConfiguration(protocolType: "direct", tag: "direct"),
             ],
-            routing: RoutingConfiguration(defaultOutbound: "direct")
+            routing: RoutingConfiguration(defaultOutbound: "direct"),
         )
     }
 }
