@@ -1,39 +1,17 @@
-> Sponsored by [Warp](https://go.warp.dev/sing-box), built for coding with multiple AI agents
+# sing-swift
 
-<a href="https://go.warp.dev/sing-box">
-<img alt="Warp sponsorship" width="400" src="https://github.com/warpdotdev/brand-assets/raw/refs/heads/main/Github/Sponsor/Warp-Github-LG-02.png">
-</a>
+> [!WARNING]
+> This project is in an early experimental stage, not suitable for production use, and should be regarded as little more than glorified pseudocode at best. Use with discretion.
 
----
+## Disclaimer
 
-# sing-box
+This project is provided solely for the author's personal study and exploration. You may clone or fork this repository, provided that you independently verify and ensure full compliance with all applicable laws, regulations, export controls, and other legal requirements in your jurisdiction. You bear sole responsibility for ensuring that your use, modification, or redistribution of this project does not contravene any such obligations.
 
-The universal proxy platform.
+## Credits
 
-[![Packaging status](https://repology.org/badge/vertical-allrepos/sing-box.svg)](https://repology.org/project/sing-box/versions)
-
-## Documentation
-
-https://sing-box.sagernet.org
+- [SagerNet/sing-box](https://github.com/SagerNet/sing-box) (GPL-3.0)
 
 ## License
 
-```
-Copyright (C) 2022 by nekohasekai <contact-sagernet@sekai.icu>
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program. If not, see <http://www.gnu.org/licenses/>.
-
-In addition, no derivative work may use the name or imply association
-with this application without prior consent.
-```
+1. This project is distributed under the terms of the [AGPL-3.0](LICENSE) license. All derivative works shall be subject to the same license.
+2. The submission, inclusion, or listing of this project in lists, collections, rankings, or analogous compilations is expressly prohibited without the prior written consent of the author.
